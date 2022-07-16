@@ -38,8 +38,8 @@ axios.interceptors.response.use(response => response.status, error => {
 // prepare the prometheus client register
 const register = new client.Registry()
 const httpReqsHistogram = new client.Histogram({
-  name: 'df_http_reqs',
-  help: 'Number and duration in seconds of HTTP requests',
+  name: 'df_http_reqs_seconds',
+  help: 'Duration in seconds of HTTP requests',
   labelNames: ['name', 'status'],
   registers: [register]
 })
