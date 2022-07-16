@@ -44,6 +44,8 @@ const httpReqsHistogram = new client.Histogram({
   registers: [register]
 })
 
+const reqs = JSON.parse(JSON.stringify(config.reqs).replace(/\$timestamp/g, new Date().getTime()))
+
 const app = express()
 const server = require('http').createServer(app)
 
@@ -52,11 +54,11 @@ const iteration = async () => {
   debug('starting iteration')
   if (running) return // prevent overlapping
   running = true
-  for (const name in config.reqs) {
+  for (const name in reqs) {
     const end = httpReqsHistogram.startTimer()
-    const status = await axios(config.reqs[name])
+    const status = await axios(reqs[name])
     const seconds = end({ name, status })
-    debug('req', name, config.reqs[name], status, seconds)
+    debug('req', name, reqs[name], status, seconds)
   }
   running = false
 }
@@ -64,17 +66,28 @@ const iteration = async () => {
 app.get('/metrics', asyncWrap(async (req, res) => {
   res.set('Content-Type', register.contentType)
   res.send(await register.metrics())
-}));
+}))
 
+let interval, currentIteration;
 (async function main () {
   server.listen(config.port)
   await eventToPromise(server, 'listening')
   console.log('Prometheus metrics server listening on http://localhost:' + config.port)
 
   console.log('starting loop')
-  iteration()
-  setInterval(iteration, config.interval * 1000)
+  currentIteration = iteration()
+  interval = setInterval(iteration, config.interval * 1000)
 })()
+
+process.on('SIGTERM', async function onSigterm () {
+  console.info('Received SIGTERM signal, shutdown gracefully...')
+  if (interval) clearInterval(interval)
+  if (currentIteration) await currentIteration
+  server.close()
+  await eventToPromise(server, 'close')
+  console.log('shutting down now')
+  process.exit()
+})
 
 // dev only mocks
 if (process.env.NODE_ENV === 'development') {
