@@ -15,6 +15,10 @@ const httpsAgent = new https.Agent({})
 cacheableLookup.install(httpAgent)
 cacheableLookup.install(httpsAgent)
 const axios = require('axios').create({ httpAgent, httpsAgent })
+axios.interceptors.request.use(config => {
+  config.headers.common.referer = 'http-req-exporter'
+  return config
+})
 axios.interceptors.response.use(response => response.status, error => {
   console.warn('HTTP request error', error)
   if (!error.response) {
