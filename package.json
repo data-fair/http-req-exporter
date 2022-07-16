@@ -1,6 +1,6 @@
 {
   "name": "http-req-exporter",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A standalone prometheus exporter that executes HTTP requests and exports metrics on their performance.",
   "main": "server/index.js",
   "scripts": {
