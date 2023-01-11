@@ -19,7 +19,7 @@ axios.interceptors.request.use(config => {
   config.headers.common.referer = 'http-req-exporter'
   return config
 })
-axios.interceptors.response.use(response => response.status, error => {
+axios.interceptors.response.use(response => response, error => {
   console.warn('HTTP request error', error)
   if (!error.response) {
     console.warn('axios error', error)
@@ -36,7 +36,7 @@ axios.interceptors.response.use(response => response.status, error => {
   }
   error.response.message = `${error.response.status} - ${messageText}`
   console.warn('HTTP error', error.response)
-  return error.response.status
+  return { status: error.response.status }
 })
 
 // prepare the prometheus client register
@@ -59,8 +59,15 @@ const iteration = async () => {
   if (running) return // prevent overlapping
   running = true
   for (const name in reqs) {
+    const req = typeof reqs[name] === 'string' ? { url: reqs[name] } : reqs[name]
     const end = httpReqsHistogram.startTimer()
-    const status = await axios(reqs[name])
+    let { status, data } = await axios(req.url)
+    for (const contain of req.contains || []) {
+      if (!data.includes(contain)) {
+        console.warn('missing expected content', req.url, contain)
+        status = 417
+      }
+    }
     const seconds = end({ name, status })
     debug('req', name, reqs[name], status, seconds)
   }
