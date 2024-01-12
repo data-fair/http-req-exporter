@@ -1,6 +1,6 @@
 ######################################
 # Stage: nodejs dependencies and build
-FROM node:16.16.0-alpine3.15 AS builder
+FROM node:16.20.2-alpine3.18 AS builder
 
 WORKDIR /webapp
 ADD package.json .
@@ -21,7 +21,7 @@ RUN npm prune --production && \
 
 ##################################
 # Stage: main nodejs service stage
-FROM node:16.16.0-alpine3.15
+FROM node:16.20.2-alpine3.18
 MAINTAINER "contact@koumoul.com"
 
 WORKDIR /webapp
